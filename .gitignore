@@ -3,6 +3,7 @@ build
 pubspec.lock
 pubspec.yaml
 jvbuild-out
+jvbuild-cache
 
 # Dependency directories
 node_modules/

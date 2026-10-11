@@ -7,6 +7,7 @@ import 'package:drawlite_dart/drawlite-touch.dart';
 
 import 'package:dcanvas/dcanvas.dart';
 import 'package:dcanvas/backend/Window.dart';
+import 'package:dcanvas/backend/Backend.dart' show sdl;
 
 import './icons.dart';
 
@@ -17,6 +18,30 @@ import './sidebar.dart';
 import './app-state.dart';
 
 late SDLWindow window;
+
+// smallest logical window size before the layout starts overlapping
+const MIN_WIDTH = 960;
+const MIN_HEIGHT = 680;
+
+void onWindowResized(int newWidth, int newHeight) {
+    width = newWidth;
+    height = newHeight;
+    dl.size(width, height);
+    window.width = width;
+    window.height = height;
+
+    lWidth = width / appScale;
+    lHeight = height / appScale;
+
+    sidebarCacheImg = null;
+
+    // keep the color picker inside the window
+    final picker = colorPicker;
+    if (picker != null) {
+        picker.x = constrain(picker.x, 0, lWidth - picker.width).toInt();
+        picker.y = constrain(picker.y, 0, lHeight - picker.height).toInt();
+    }
+}
 
 void renderTopRowButtons() {
     final mouseX = get.mouseX;
@@ -303,10 +328,19 @@ void mouseReleased(MouseEvent event) {
         }
     }
 
-    final canvasX = (sidebarX / 2 - paintCanvas.width / 2).round();
-    final canvasY = (canvasAreaY + (height - canvasAreaY) / 2 - paintCanvas.height / 2).round();
-    paintCanvas = snip(canvasX, canvasY, paintCanvas.width, paintCanvas.height);
-    currDrawStroke = null;
+    if (currDrawStroke != null) {
+        // redraw only the canvas and the stroke before snipping so that
+        // UI drawn on top of the canvas (e.g. the color picker) isn't captured
+        final canvasX = (sidebarX / 2 - paintCanvas.width / 2).round();
+        final canvasY = (canvasAreaY + (height - canvasAreaY) / 2 - paintCanvas.height / 2).round();
+        pushMatrix();
+            scale(appScale);
+            image(paintCanvas, canvasX, canvasY);
+            currDrawStroke!.render();
+        popMatrix();
+        paintCanvas = snip(canvasX, canvasY, paintCanvas.width, paintCanvas.height);
+        currDrawStroke = null;
+    }
 
     brushesPage.thicknessSlider.setPressed(false);
     brushesPage.opacitySlider.setPressed(false);
@@ -333,8 +367,13 @@ void myEventHandler(Event event) {
             dl.eventCallbacks.keyup(event);
         }
         
-        if (event.keyCode == Key.Escape) {
-            running = false;
+        // Escape cancels the color picker instead of quitting the app
+        if (event.keyCode == Key.Escape && event.type == EventType.KeyDown) {
+            colorPicker = null;
+        }
+    } else if (event is WindowEvent) {
+        if (event.type == EventType.WindowResized) {
+            onWindowResized(event.width, event.height);
         }
     } else if (event is QuitEvent) {
         running = false;
@@ -355,10 +394,11 @@ Future<void> main() async {
         title: "Untitled - LibrePaint 3D",
         width: canvas.width,
         height: canvas.height,
-        flagsList: [SDL_WindowFlags.SDL_WINDOW_SHOWN]
+        flagsList: [SDL_WindowFlags.SDL_WINDOW_SHOWN, SDL_WindowFlags.SDL_WINDOW_RESIZABLE]
     );
     window.setCanvas(canvas);
     window.eventHandler = myEventHandler;
+    sdl.SDL_SetWindowMinimumSize(window.sdlWindow, (MIN_WIDTH * appScale).round(), (MIN_HEIGHT * appScale).round());
 
     globalizeDL(dl);
     
