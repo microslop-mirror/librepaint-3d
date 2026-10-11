@@ -39,7 +39,7 @@ void welcomeMenu() {
     for (var i = 0; i < 3; i++) {
         var rx = lWidth / 2 - 101;
         var ry = 165 + i * 169;
-        var touching = point_rect(get.mouseX / appScale, get.mouseY / appScale, rx, ry, 202, 144);
+        var touching = point_rect(get.mouseX, get.mouseY, rx, ry, 202, 144);
         if (touching) {
             stroke(5, 100, 190);
             strokeWeight(3);

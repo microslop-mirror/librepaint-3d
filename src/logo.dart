@@ -3,7 +3,7 @@ import 'package:dcanvas/backend/Backend.dart';
 
 import 'package:dcanvas/dcanvas.dart' show Canvas;
 import 'package:drawlite_dart/drawlite.dart'
-    show Color, Drawlite;
+    show Drawlite;
 import 'package:drawlite_dart/dl.dart';
 
 void main() {

@@ -1,8 +1,9 @@
 import 'package:drawlite_dart/drawlite.dart'
-    show Color, Drawlite, DLImage;
+    show Color, Drawlite;
 
 import './ColorPicker.dart';
 import './brushes.dart';
+import './document.dart';
 
 late Drawlite dl;
 
@@ -35,8 +36,8 @@ Color currColor = brushColors[14];
 
 List<Color> customColors = [];
 
-// the librepaint canvas
-late DLImage paintCanvas;
+// the image being edited
+late PaintDocument doc;
 
 // selected marker index
 int selectedMarker = 0;

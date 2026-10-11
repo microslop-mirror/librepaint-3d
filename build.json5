@@ -12,7 +12,7 @@
     modules: {
         librepaint3d: {
             root: "src/librepaint3d.dart",
-            version: "0.0.1",
+            version: "0.0.2",
             dependencies: [
                 "image",
                 "drawlite_dart",

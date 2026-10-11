@@ -35,11 +35,23 @@ Build:
 jvbuild build
 ```
 
-Package:
+Package (.deb):
 ```
-jvbuild package
+./package-deb.sh
+```
+This runs `jvbuild package` and then removes the `build-essential` dependency, bundles the Open Sans font, and makes the installed files owned by root.
+
+Install the package:
+```
+sudo apt install ./jvbuild-out/librepaint3d_<version>_x64.deb
 ```
 
+If the first `jvbuild build` after `jvbuild install` fails with `No pubspec.yaml found for package drawlite_dart`, run it again; jvbuild resolves Dart packages before it has finished generating drawlite's pubspec.yaml.
+
+
+## High DPI Screens
+LibrePaint 3D follows the desktop's scale (`GDK_SCALE` or the X11 `Xft.dpi` setting).
+To pick a scale yourself, set `LIBREPAINT_SCALE`, e.g. `LIBREPAINT_SCALE=1.5 librepaint3d`.
 
 ## Platform Support
 | Platform  | Support |

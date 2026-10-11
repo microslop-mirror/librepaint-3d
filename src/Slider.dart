@@ -1,7 +1,6 @@
 import 'package:drawlite_dart/dl.dart';
 import 'package:drawlite_dart/drawlite-touch.dart';
 
-import 'app-state.dart' show appScale;
 
 class Slider {
     late double x, y, width, start, stop, value;
@@ -21,7 +20,7 @@ class Slider {
     }
 
     bool hoveredOver(int mouseX, int mouseY) {
-        return point_rect(mouseX / appScale, mouseY / appScale, this.x, this.y - 12, this.width, 24);
+        return point_rect(mouseX, mouseY, this.x, this.y - 12, this.width, 24);
     }
 
     void render() {
@@ -33,7 +32,7 @@ class Slider {
         final hovered = this.hoveredOver(mouseX, mouseY);
 
         if (this.pressed) {
-            this.value = constrain(map(mouseX / appScale, this.x, this.x + this.width, this.start, this.stop), this.start, this.stop).toDouble();
+            this.value = constrain(map(mouseX, this.x, this.x + this.width, this.start, this.stop), this.start, this.stop).toDouble();
         }
 
         // slider base

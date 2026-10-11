@@ -1,8 +1,11 @@
-import './app-state.dart' show appScale;
 import 'package:drawlite_dart/drawlite.dart'
-    show Color, Drawlite, Event, KeyboardEvent, MouseEvent, QuitEvent, DLImage;
+    show KeyboardEvent, Key;
 import 'package:drawlite_dart/dl.dart';
 import 'package:drawlite_dart/drawlite-touch.dart';
+
+const KEYPAD_ENTER = 1073741912;
+const KEYPAD_1 = 1073741913;
+const KEYPAD_0 = 1073741922;
 
 class TextBox {
     late double x, y, width, height;
@@ -15,7 +18,36 @@ class TextBox {
 
     int lastClicked = 0;
 
+    // characters the user is allowed to type
+    RegExp allowedChars = RegExp(r'[0-9]');
+    int maxLength = 3;
+    // called with the typed value when editing ends via Enter or clicking elsewhere
+    void Function(String)? onCommit;
+
     TextBox(this.x, this.y, this.width, this.height, this.value, this.units);
+
+    bool get focused => selectIdx != -1;
+
+    void blur() {
+        if (!focused) return;
+        selectIdx = -1;
+        selectLen = 0;
+        final commit = onCommit;
+        if (commit != null) {
+            commit(value);
+        }
+    }
+
+    // cursor range within value, ordered so start <= end
+    int get _selStart => (selectLen >= 0 ? selectIdx : selectIdx + selectLen).clamp(0, value.length);
+    int get _selEnd => (selectLen >= 0 ? selectIdx + selectLen : selectIdx).clamp(0, value.length);
+
+    void _replaceSelection(String str) {
+        final start = _selStart;
+        value = value.substring(0, start) + str + value.substring(_selEnd);
+        selectIdx = start + str.length;
+        selectLen = 0;
+    }
     
     double floatValue() {
         return double.parse(this.value);
@@ -69,8 +101,7 @@ class TextBox {
 
             lastClicked = now;
         } else {
-            this.selectIdx = -1;
-            this.selectLen = 0;
+            blur();
         }
     }
     
@@ -115,33 +146,55 @@ class TextBox {
         }
     }
 
-    void keyPressed(KeyboardEvent event){
-        final key = String.fromCharCode(event.keyCode);
+    void keyPressed(KeyboardEvent event) {
+        if (!focused) return;
 
-        final content = "${this.value}${this.units}";
+        final code = event.keyCode;
+        selectBlinkTimer = DateTime.now().millisecondsSinceEpoch;
 
-        String preSelectContent = content;
-        String postSelectContent = "";
-
-        // calc substrings
-        if (this.selectIdx != -1) {
-            if (this.selectLen >= 0) {
-                preSelectContent = content.substring(0, this.selectIdx);
-                int a = this.selectIdx + this.selectLen;
-                if (a > value.length) {
-                    a = value.length;
-                }
-                postSelectContent = content.substring(a);
-            } else {
-                int a = this.selectIdx + this.selectLen;
-                if (a < 0) {
-                    a = 0;
-                }
-                preSelectContent = content.substring(0, a);
-                postSelectContent = content.substring(this.selectIdx);
+        if (code == Key.Enter || code == KEYPAD_ENTER) {
+            blur();
+        } else if (code == Key.Escape) {
+            // leave editing without applying; the owner restores the value
+            selectIdx = -1;
+            selectLen = 0;
+        } else if (code == Key.Backspace) {
+            if (selectLen == 0 && _selStart > 0) {
+                selectIdx--;
+                selectLen = 1;
             }
-            final newContent = "${preSelectContent}${key}${postSelectContent}";
-            this.value = newContent.substring(0, newContent.length - this.units.length);
+            _replaceSelection("");
+        } else if (code == Key.Delete) {
+            if (selectLen == 0 && _selEnd < value.length) {
+                selectLen = 1;
+            }
+            _replaceSelection("");
+        } else if (code == Key.LeftArrow) {
+            selectIdx = selectLen == 0 ? (selectIdx - 1).clamp(0, value.length) : _selStart;
+            selectLen = 0;
+        } else if (code == Key.RightArrow) {
+            selectIdx = selectLen == 0 ? (selectIdx + 1).clamp(0, value.length) : _selEnd;
+            selectLen = 0;
+        } else if (code == Key.Home) {
+            selectIdx = 0;
+            selectLen = 0;
+        } else if (code == Key.End) {
+            selectIdx = value.length;
+            selectLen = 0;
+        } else {
+            var ch = "";
+            if (code >= KEYPAD_1 && code <= KEYPAD_1 + 8) {
+                ch = (code - KEYPAD_1 + 1).toString();
+            } else if (code == KEYPAD_0) {
+                ch = "0";
+            } else if (code >= 32 && code < 127) {
+                ch = String.fromCharCode(code);
+            }
+            if (ch.isNotEmpty && allowedChars.hasMatch(ch)) {
+                if (value.length - (_selEnd - _selStart) < maxLength) {
+                    _replaceSelection(ch);
+                }
+            }
         }
     }
 
